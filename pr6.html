@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111115;
+            font-family: sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        //Инициализация сцены,  камеры
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111115);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 3, 6);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        //Настройка освещения
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 5.0);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5);
+        directionalLight.position.set(5, 8, 5);
+        scene.add(directionalLight);
+
+        const backLight = new THREE.DirectionalLight(0x88ccff, 1.5);
+        backLight.position.set(-5, -3, -5);
+        scene.add(backLight);
+        
+        const bottomLight = new THREE.DirectionalLight(0xffb6c1, 1.5);
+        bottomLight.position.set(0, -6, 2);
+        scene.add(bottomLight); 
+
+        //Настройка физического материала
+        const loader = new GLTFLoader();
+        loader.load('diamond.glb', function (gltf) {
+            const diamond = gltf.scene;
+            
+            diamond.traverse((node) => {
+                if (node.isMesh) {
+                    //Пересчет нормалей вершин
+                    node.geometry.computeVertexNormals();
+
+                    //Физический материал 
+                    node.material = new THREE.MeshPhysicalMaterial({
+                        color: 0xff6b95,
+                        emissive: 0x330d1a,
+                        emissiveIntensity: 0.15,
+                        metalness: 0.0,
+                        roughness: 0.015,
+                        transmission: 0.95,
+                        ior: 2.42,
+                        thickness: 0.6,
+                        specularIntensity: 1.5,
+                        specularColor: 0xffffff,
+                        clearcoat: 1.0,
+                        clearcoatRoughness: 0.02,
+                        attenuationColor: 0xff4d88,
+                        attenuationDistance: 0.5
+                    });
+                }
+            });
+
+            scene.add(diamond);
+        }, undefined, function (error) {
+            console.error('Ошибка загрузки diamond.glb:', error);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
